@@ -59,6 +59,12 @@ SOMAJOR=2
 SOMINOR=1
 SORELEASE?=.0#   Declare empty to leave out from library file name.
 
+ifeq ($(shell uname),Darwin)
+  SONAME = -install_name
+else
+  SONAME = -soname
+endif
+
 MINISAT_CXXFLAGS = -I. -D __STDC_LIMIT_MACROS -D __STDC_FORMAT_MACROS -Wall -Wno-parentheses -Wextra
 MINISAT_LDFLAGS  = -Wall -lz
 
@@ -95,10 +101,15 @@ $(BUILD_DIR)/profile/%.o:			MINISAT_CXXFLAGS +=$(MINISAT_PRF) -pg
 $(BUILD_DIR)/dynamic/%.o:			MINISAT_CXXFLAGS +=$(MINISAT_REL) $(MINISAT_FPIC)
 
 ## Build-type Link-flags:
+ifeq ($(shell uname),Darwin)
+  ADDITIONAL_LINKFLAG = $(MINISAT_RELSYM)
+else
+  ADDITIONAL_LINKFLAG = --static $(MINISAT_RELSYM)
+endif
 $(BUILD_DIR)/profile/bin/$(MINISAT):		MINISAT_LDFLAGS += -pg
-$(BUILD_DIR)/release/bin/$(MINISAT):		MINISAT_LDFLAGS += --static $(MINISAT_RELSYM)
+$(BUILD_DIR)/release/bin/$(MINISAT):		MINISAT_LDFLAGS += $(ADDITIONAL_LINKFLAG)
 $(BUILD_DIR)/profile/bin/$(MINISAT_CORE):	MINISAT_LDFLAGS += -pg
-$(BUILD_DIR)/release/bin/$(MINISAT_CORE):	MINISAT_LDFLAGS += --static $(MINISAT_RELSYM)
+$(BUILD_DIR)/release/bin/$(MINISAT_CORE):	MINISAT_LDFLAGS += $(ADDITIONAL_LINKFLAG)
 
 ## Executable dependencies
 $(BUILD_DIR)/release/bin/$(MINISAT):	 	$(BUILD_DIR)/release/minisat/simp/Main.o $(BUILD_DIR)/release/lib/$(MINISAT_SLIB)
@@ -144,11 +155,16 @@ $(BUILD_DIR)/dynamic/%.o:	%.cc
 	$(VERB) $(CXX) $(MINISAT_CXXFLAGS) $(CXXFLAGS) -c -o $@ $< -MMD -MF $(BUILD_DIR)/dynamic/$*.d
 
 ## Linking rule
+ifeq ($(shell uname),Darwin)
+  LINKBIN_CMD = $(CXX) $^ $(MINISAT_LDFLAGS) $(ZLIBLIB)/libz.a -o $@
+else
+  LINKBIN_CMD = $(CXX) $^ $(MINISAT_LDFLAGS) $(LDFLAGS) -o $@
+endif
 $(BUILD_DIR)/release/bin/$(MINISAT) $(BUILD_DIR)/debug/bin/$(MINISAT) $(BUILD_DIR)/profile/bin/$(MINISAT) $(BUILD_DIR)/dynamic/bin/$(MINISAT)\
 $(BUILD_DIR)/release/bin/$(MINISAT_CORE) $(BUILD_DIR)/debug/bin/$(MINISAT_CORE) $(BUILD_DIR)/profile/bin/$(MINISAT_CORE) $(BUILD_DIR)/dynamic/bin/$(MINISAT_CORE):
 	$(ECHO) Linking Binary: $@
 	$(VERB) mkdir -p $(dir $@)
-	$(VERB) $(CXX) $^ $(MINISAT_LDFLAGS) $(LDFLAGS) -o $@
+	$(VERB) $(LINKBIN_CMD)
 
 ## Static Library rule
 %/lib/$(MINISAT_SLIB):
@@ -162,7 +178,7 @@ $(BUILD_DIR)/dynamic/lib/$(MINISAT_DLIB).$(SOMAJOR).$(SOMINOR)$(SORELEASE)\
  $(BUILD_DIR)/dynamic/lib/$(MINISAT_DLIB):
 	$(ECHO) Linking Shared Library: $@
 	$(VERB) mkdir -p $(dir $@)
-	$(VERB) $(CXX) $(MINISAT_LDFLAGS) $(LDFLAGS) -o $@ -shared -Wl,-soname,$(MINISAT_DLIB).$(SOMAJOR) $^
+	$(VERB) $(CXX) $(MINISAT_LDFLAGS) $(LDFLAGS) -o $@ -shared -Wl,$(SONAME),$(MINISAT_DLIB).$(SOMAJOR) $^
 	$(VERB) ln -sf $(MINISAT_DLIB).$(SOMAJOR).$(SOMINOR)$(SORELEASE) $(BUILD_DIR)/dynamic/lib/$(MINISAT_DLIB).$(SOMAJOR)
 	$(VERB) ln -sf $(MINISAT_DLIB).$(SOMAJOR) $(BUILD_DIR)/dynamic/lib/$(MINISAT_DLIB)
 
