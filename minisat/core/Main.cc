@@ -61,6 +61,7 @@ int main(int argc, char** argv)
         // Extra options:
         //
         IntOption    verb   ("MAIN", "verb",   "Verbosity level (0=silent, 1=some, 2=more).", 1, IntRange(0, 2));
+        IntOption    std_out("MAIN", "stdout", "Select output file or stdout(0=file, 1=stdout).\n", 0, IntRange(0, 1));
         IntOption    cpu_lim("MAIN", "cpu-lim","Limit on CPU time allowed in seconds.\n", 0, IntRange(0, INT32_MAX));
         IntOption    mem_lim("MAIN", "mem-lim","Limit on memory usage in megabytes.\n", 0, IntRange(0, INT32_MAX));
         BoolOption   strictp("MAIN", "strict", "Validate DIMACS header during parsing.", false);
@@ -94,8 +95,8 @@ int main(int argc, char** argv)
         
         parse_DIMACS(in, S, (bool)strictp);
         gzclose(in);
-        FILE* res = (argc >= 3) ? fopen(argv[2], "wb") : NULL;
-        
+        FILE *res = std_out ? stdout : (argc >= 3) ? fopen(argv[2], "wb") : NULL;
+
         if (S.verbosity > 0){
             printf("|  Number of variables:  %12d                                         |\n", S.nVars());
             printf("|  Number of clauses:    %12d                                         |\n", S.nClauses()); }
