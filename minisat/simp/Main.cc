@@ -81,7 +81,25 @@ int main(int argc, char** argv)
             ClientPuzzle CLP;
             parsePuzzle(ifs, CLP);
             ifs.close();
-            std::cout << "PUZZLE RESULT:" << puzzleMD4(CLP) << std::endl;
+            std::string puzzle_answer = puzzleMD4(CLP);
+            FILE *puzzle_res = std_out ? stdout : (argc >= 5) ? fopen(argv[4], "wb") : NULL;
+            if (puzzle_answer.compare("NOT FOUND") == 0){
+                std::cout << "PUZZLE UNSOLVABLE" << std::endl;
+                if (puzzle_res != NULL){
+                    fprintf(puzzle_res, "UNSOLVED\n");
+                    if (puzzle_res != stdout)
+                        fclose(puzzle_res);
+                }
+                exit(1);
+            } else {
+                std::cout << "PUZZLE SOLVED" << std::endl;
+                if (puzzle_res != NULL){
+                    fprintf(puzzle_res, "SOLVED\n");
+                    fprintf(puzzle_res, "%s\n", puzzle_answer.c_str());
+                    if (puzzle_res != stdout)
+                        fclose(puzzle_res);
+                }
+            }
         }
 
         SimpSolver  S;
@@ -113,7 +131,8 @@ int main(int argc, char** argv)
         
         parse_DIMACS(in, S, (bool)strictp);
         gzclose(in);
-        FILE *res = std_out ? stdout : (argc >= 3) ? fopen(argv[2], "wb") : NULL;
+        //FILE *res = std_out ? stdout : (argc >= 3) ? fopen(argv[2], "wb") : NULL;
+        FILE *res = std_out ? stdout : cpuzzle ? ((argc >= 4) ? fopen(argv[3], "wb") : NULL) : (argc >= 3) ? fopen(argv[2], "wb") : NULL;
 
         if (S.verbosity > 0){
             printf("|  Number of variables:  %12d                                         |\n", S.nVars());
