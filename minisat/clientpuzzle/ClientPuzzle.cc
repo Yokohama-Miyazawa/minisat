@@ -1,5 +1,6 @@
 #include <iostream>
 #include <string>
+#include <cmath>
 #include <fstream>
 #include <sstream>
 #include <openssl/md4.h>
